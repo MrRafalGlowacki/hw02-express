@@ -1,15 +1,8 @@
-const express = require("express");
+import { Router } from "express";
+import { validateContact } from "../../helpers/validation.js";
+import { listContacts, getContactById, removeContact, addContact, updateContact, updateStatusContact } from "../../models/contacts.js";
 
-const router = express.Router();
-const { validation } = require("../../helpers/validation");
-const {
-  listContacts,
-  getContactById,
-  removeContact,
-  addContact,
-  updateContact,
-  updateStatusContact,
-} = require("../../models/contacts.js");
+const router = Router();
 
 router.get("/", async (req, res, next) => {
   try {
@@ -35,7 +28,7 @@ router.get("/:contactId", async (req, res, next) => {
   }
 });
 
-router.post("/", validation, async (req, res, next) => {
+router.post("/", validateContact, async (req, res, next) => {
   try {
     const { name, email, phone } = req.body;
     if (!name || !email || !phone) {
@@ -103,4 +96,4 @@ router.patch("/:contactId/favorite", async (req, res, next) => {
   }
 });
 
-module.exports = router;
+export default router;

@@ -1,15 +1,14 @@
-const mongoose = require("mongoose");
-
-const dbpath = process.env.DB_HOST;
-
+import { connect as _connect } from "mongoose";
+import { config } from "./helpers/config.js";
+const dbpath = config.MONGODB_URI;
 if (!dbpath) {
   console.error("no db secret");
 }
 
 const connect = async () => {
-  await mongoose
-    .connect(dbpath)
-    .then(() => console.log("Database connection successful"));
+  await _connect(dbpath).then(() =>
+    console.log("Database connection successful")
+  );
 };
 
-module.exports = connect;
+export default connect;
