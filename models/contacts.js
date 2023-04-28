@@ -1,8 +1,11 @@
 import Contact from "./contactSchema.js";
 
-export const listContacts = async () => {
+export const listContacts = async (page, limit, filter) => {
   try {
-    const contacts = await Contact.find();
+    const contacts = await Contact.find()
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .find(filter);
     return contacts;
   } catch (error) {
     console.error(error);
@@ -66,5 +69,3 @@ export const updateStatusContact = async (contactId, favorite) => {
     return null;
   }
 };
-
-

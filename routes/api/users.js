@@ -5,21 +5,20 @@ import { validateUser } from "../../helpers/validation.js";
 import { config } from "../../helpers/config.js";
 import jwt from "jsonwebtoken";
 import { auth } from "../../helpers/authMiddlewares.js";
+import {
+  createUser,
+  findUserByEmail,
+  findUserById,
+  passwordValidator,
+} from "../../models/users.js";
 
 const router = Router();
-
-const hashPassword = async (pwd) => {
-  const salt = await bcrypt.genSalt(10); // 10 salt rounds
-  const hash = await bcrypt.hash(pwd, salt);
-  return hash;
-};
-
-const validatePassword = (pwd, hash) => bcrypt.compare(pwd, hash);
 
 router.post("/signup", validateUser, async (req, res, next) => {
   const { email, password } = req.body;
   console.log("Register", { email, password });
-  const user = await User.findOne({ email });
+  const user = await findUserByEmail(email);
+
   if (user) {
     return res.status(409).json({
       status: "error",
@@ -29,9 +28,7 @@ router.post("/signup", validateUser, async (req, res, next) => {
     });
   }
   try {
-    const hashedPassword = await hashPassword(password);
-    const newUser = new User({ email, password: hashedPassword });
-    const user = await newUser.save();
+    const user = await createUser(email, password);
     res.status(201).json({
       status: "success",
       code: 201,
@@ -48,12 +45,11 @@ router.post("/signup", validateUser, async (req, res, next) => {
 router.post("/login", validateUser, async (req, res, next) => {
   const { email, password } = req.body;
   console.log("Login", { email, password });
-  const user = await User.findOne({ email });
-
+  const user = await findUserByEmail(email);
   if (!user)
     return res.status(401).json({ message: "Invalid Email or password" });
 
-  const isValidPassword = await validatePassword(password, user.password);
+  const isValidPassword = await passwordValidator(password, user.password);
 
   if (!isValidPassword)
     return res.status(401).json({ message: "Invalid email or Password" });
@@ -78,10 +74,31 @@ router.post("/login", validateUser, async (req, res, next) => {
   });
 });
 
+router.get("/current", auth, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const user = await findUserById(userId);
+    if (!user) {
+      return res.status(401).json({ message: "Not authorized" });
+    }
+    res.json({
+      status: "success",
+      code: 200,
+      data: {
+        email: user.email,
+        subscription: user.subscription,
+      },
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Server error" });
+  }
+});
+
 router.get("/logout", auth, async (req, res) => {
   try {
     const userId = req.user.id;
-    const user = await User.findOne({ _id: userId });
+    const user = await findUserById(userId);
     if (!user) {
       return res.status(401).json({ message: "Not authorized" });
     }
@@ -91,6 +108,24 @@ router.get("/logout", auth, async (req, res) => {
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Server error" });
+  }
+});
+
+router.patch("/:id", async (req, res, next) => {
+  try {
+    const { subscription } = req.body;
+    if (!["starter", "pro", "business"].includes(subscription)) {
+      return res.status(400).json({ message: "Invalid subscription type" });
+    }
+    const updatedUser = await User.findByIdAndUpdate(
+      req.params.id,
+      { subscription },
+      { new: true }
+    );
+    res.status(200).json(updatedUser);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal Server Error" });
   }
 });
 

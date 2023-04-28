@@ -1,13 +1,39 @@
 import { Router } from "express";
 import { validateContact } from "../../helpers/validation.js";
-import { listContacts, getContactById, removeContact, addContact, updateContact, updateStatusContact } from "../../models/contacts.js";
+import {
+  listContacts,
+  getContactById,
+  removeContact,
+  addContact,
+  updateContact,
+  updateStatusContact,
+} from "../../models/contacts.js";
+import Contact from "../../models/contactSchema.js";
 
 const router = Router();
 
 router.get("/", async (req, res, next) => {
   try {
-    const contacts = await listContacts();
-    res.status(200).json(contacts);
+    const page = req.query.page || 1;
+    const limit = req.query.limit || 20;
+    const favorite = req.query.favorite;
+    const filter = {};
+    if (favorite !== undefined) {
+      filter.favorite = favorite;
+    }
+    const contacts = await listContacts(page, limit, filter);
+    const count = await Contact.countDocuments();
+    const totalPages = Math.ceil(count / limit);
+    const currentPage = Math.min(page, totalPages);
+    const paginationHeader = {
+      currentPage,
+      totalPages,
+      totalCount: count,
+    };
+    res
+      .status(200)
+      .header("pagination", JSON.stringify(paginationHeader))
+      .json(contacts);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Internal Server Error" });
