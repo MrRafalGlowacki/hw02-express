@@ -24,11 +24,11 @@ export const auth = (req, res, next) => {
     if (!user || error)
       return res.status(401).json({ message: "Unauthorized" });
 
-    const token = req.get("Authorization").replace("Bearer", "");
+    const token = req.get("Authorization").replace("Bearer ", "");
     if (!token) return res.status(401).json({ message: "Unauthorized" });
     try {
       const decodedToken = jwt.verify(token, config.JWT_SECRET);
-      const userId = decodedToken.userId;
+      const userId = decodedToken.id;
       const foundUser = await User.findById(userId);
       if (!foundUser || foundUser.token !== token)
         return res.status(401).json({ message: "Unauthorized" });
