@@ -1,9 +1,5 @@
-
-// const dotenv = require("dotenv");
 import app from "./app.js"
-// const app = require("./app");
 import connect from "./database.js";
-// const connect = require("./database");
 
 connect()
   .then(() => {

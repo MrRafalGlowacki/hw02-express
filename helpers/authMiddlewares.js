@@ -2,7 +2,7 @@ import passport from "passport";
 import { ExtractJwt, Strategy } from "passport-jwt";
 import { config } from "./config.js";
 import User from "../models/userSchema.js";
-
+import jwt from "jsonwebtoken";
 
 const strategyParams = {
   secretOrKey: config.JWT_SECRET,
@@ -20,9 +20,22 @@ passport.use(
 );
 
 export const auth = (req, res, next) => {
-    passport.authenticate("jwt", { session: false }, (error, user) => {
-      if (!user || error) return res.status(401).json({ message: "Unauthorized" });
-      req.user = user;
-      next();
-    })(req, res, next);
-  };
+  passport.authenticate("jwt", { session: false }, async (error, user) => {
+    if (!user || error)
+      return res.status(401).json({ message: "Unauthorized" });
+
+    const token = req.get("Authorization").replace("Bearer", "");
+    if (!token) return res.status(401).json({ message: "Unauthorized" });
+    try {
+      const decodedToken = jwt.verify(token, config.JWT_SECRET);
+      const userId = decodedToken.userId;
+      const foundUser = await User.findById(userId);
+      if (!foundUser || foundUser.token !== token)
+        return res.status(401).json({ message: "Unauthorized" });
+    } catch {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    req.user = user;
+    next();
+  })(req, res, next);
+};
