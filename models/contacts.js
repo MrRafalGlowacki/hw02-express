@@ -1,15 +1,18 @@
-const Contact = require("./contactSchema");
+import Contact from "./contactSchema.js";
 
-const listContacts = async () => {
+export const listContacts = async (page, limit, filter) => {
   try {
-    const contacts = await Contact.find();
+    const contacts = await Contact.find()
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .find(filter);
     return contacts;
   } catch (error) {
     console.error(error);
   }
 };
 
-const getContactById = async (contactId) => {
+export const getContactById = async (contactId) => {
   try {
     const contacts = await listContacts();
     const contact = contacts.find((contact) => contact.id === contactId);
@@ -19,7 +22,7 @@ const getContactById = async (contactId) => {
   }
 };
 
-const removeContact = async (contactId) => {
+export const removeContact = async (contactId) => {
   try {
     const removedContact = await Contact.findByIdAndRemove(contactId);
     console.log(`Contact with ID ${contactId} removed`);
@@ -29,7 +32,7 @@ const removeContact = async (contactId) => {
   }
 };
 
-const addContact = async (body) => {
+export const addContact = async (body) => {
   try {
     const newContact = new Contact(body);
     const result = await newContact.save();
@@ -40,7 +43,7 @@ const addContact = async (body) => {
   }
 };
 
-const updateContact = async (contactId, body) => {
+export const updateContact = async (contactId, body) => {
   try {
     const updatedContact = await Contact.findByIdAndUpdate(contactId, body, {
       new: true,
@@ -53,7 +56,7 @@ const updateContact = async (contactId, body) => {
   }
 };
 
-const updateStatusContact = async (contactId, favorite) => {
+export const updateStatusContact = async (contactId, favorite) => {
   try {
     const updatedContact = await Contact.findByIdAndUpdate(
       contactId,
@@ -65,13 +68,4 @@ const updateStatusContact = async (contactId, favorite) => {
     console.error(error);
     return null;
   }
-};
-
-module.exports = {
-  listContacts,
-  getContactById,
-  removeContact,
-  addContact,
-  updateContact,
-  updateStatusContact,
 };

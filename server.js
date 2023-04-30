@@ -1,8 +1,5 @@
-const dotenv = require("dotenv");
-dotenv.config();
-const app = require("./app");
-
-const connect = require("./database");
+import app from "./app.js"
+import connect from "./database.js";
 
 connect()
   .then(() => {
