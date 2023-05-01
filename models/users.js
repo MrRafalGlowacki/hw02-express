@@ -68,3 +68,16 @@ export const updateUserAvatar = async (userId, filename) => {
 
   return updatedUser.avatarURL;
 };
+
+export const deleteUser = async (email) => {
+  try {
+    const deletedUser = await User.findOneAndDelete({ email });
+    if (!deletedUser) {
+      throw new Error(`User with ID ${userId} does not exist`);
+    }
+    console.log(`User ${email} deleted`);
+    return deletedUser;
+  } catch (error) {
+    console.error(error);
+  }
+};
