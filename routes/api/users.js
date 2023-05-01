@@ -1,5 +1,4 @@
 import { Router } from "express";
-import bcrypt from "bcrypt";
 import User from "../../models/userSchema.js";
 import { validateUser } from "../../helpers/validation.js";
 import { config } from "../../helpers/config.js";
@@ -10,10 +9,12 @@ import {
   findUserByEmail,
   findUserById,
   passwordValidator,
+  updateUserAvatar,
 } from "../../models/users.js";
+import { upload } from "../../helpers/upload.js";
 
 const router = Router();
-
+// tworzenie nowego usera
 router.post("/signup", validateUser, async (req, res, next) => {
   const { email, password } = req.body;
   console.log("Register", { email, password });
@@ -41,7 +42,7 @@ router.post("/signup", validateUser, async (req, res, next) => {
     next(error);
   }
 });
-
+// logowanie usera
 router.post("/login", validateUser, async (req, res, next) => {
   const { email, password } = req.body;
   console.log("Login", { email, password });
@@ -73,7 +74,7 @@ router.post("/login", validateUser, async (req, res, next) => {
     },
   });
 });
-
+// autoryzowana ścieżka usera
 router.get("/current", auth, async (req, res) => {
   try {
     const userId = req.user.id;
@@ -94,7 +95,7 @@ router.get("/current", auth, async (req, res) => {
     return res.status(500).json({ message: "Server error" });
   }
 });
-
+// wylogowanie
 router.get("/logout", auth, async (req, res) => {
   try {
     const userId = req.user.id;
@@ -111,6 +112,26 @@ router.get("/logout", auth, async (req, res) => {
   }
 });
 
+// update avatara
+router.patch(
+  "/avatar",
+  auth,
+  upload.single("avatar"),
+  async (req, res, next) => {
+    try {
+           const { _id } = req.user;
+      const { filename } = req.file;
+      const avatarUpdate = await updateUserAvatar(_id, filename);
+      res.status(200).json({
+        avatarURL: avatarUpdate,
+      });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: "Internal Server Error" });
+    }
+  }
+);
+// update typu subskrypcji
 router.patch("/:id", async (req, res, next) => {
   try {
     const { subscription } = req.body;

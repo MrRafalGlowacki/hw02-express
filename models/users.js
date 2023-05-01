@@ -1,3 +1,6 @@
+import Jimp from "jimp";
+import fs from "fs/promises";
+import { userAvatar } from "../helpers/gravatar.js";
 import User from "./userSchema.js";
 import bcrypt from "bcrypt";
 
@@ -29,7 +32,12 @@ export const findUserByEmail = async (email) => {
 export const createUser = async (email, password) => {
   try {
     const hashedPassword = await hashPassword(password);
-    const newUser = new User({ email, password: hashedPassword });
+    const avatar = await userAvatar(email);
+    const newUser = new User({
+      email,
+      password: hashedPassword,
+      avatarURL: avatar,
+    });
     const user = await newUser.save();
     return user;
   } catch (error) {
@@ -40,4 +48,23 @@ export const createUser = async (email, password) => {
 export const passwordValidator = async (password, userPassword) => {
   const isValidPassword = await validatePassword(password, userPassword);
   return isValidPassword;
+};
+
+export const updateUserAvatar = async (userId, filename) => {
+  const user = await User.findById(userId);
+  const img = await Jimp.read(`tmp/${filename}`);
+
+  const avatarPath = `public/avatars/avatar-${user.email}-${Date.now()}.jpg`;
+
+  await img.resize(250, 250).write(avatarPath);
+
+  await fs.unlink(`tmp/${filename}`);
+
+  const updatedUser = await User.findByIdAndUpdate(
+    userId,
+    { avatarURL: avatarPath },
+    { new: true }
+  );
+
+  return updatedUser.avatarURL;
 };

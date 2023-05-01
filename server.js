@@ -1,6 +1,8 @@
 import app from "./app.js"
 import connect from "./database.js";
 
+// app.use(express.static("moje"))
+
 connect()
   .then(() => {
     app.listen(3000, () => {

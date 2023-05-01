@@ -7,6 +7,8 @@ import usersRouter from "./routes/api/users.js";
 
 const app = express();
 
+app.use(express.static("public"));
+
 const formatsLogger = app.get("env") === "development" ? "dev" : "short";
 app.use(morgan(formatsLogger));
 app.use(cors());
