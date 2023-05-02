@@ -1,6 +1,6 @@
 import request from "supertest";
 import app from "../../app.js";
-import { createUser, deleteUser } from "../../models/users.js";
+import { deleteUser } from "../../models/users.js";
 import connect from "../../database.js";
 import { disconnect } from "mongoose";
 

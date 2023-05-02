@@ -1,11 +1,13 @@
-import app from "./app.js"
+import app from "./app.js";
 import connect from "./database.js";
+import { initDirectory } from "./helpers/tmpCreator.js";
 
 // app.use(express.static("moje"))
 
 connect()
   .then(() => {
-    app.listen(3000, () => {
+    app.listen(3000, async () => {
+      await initDirectory("tmp");
       console.log("Server running. Use our API on port: 3000");
     });
   })
