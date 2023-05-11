@@ -12,7 +12,7 @@ const userSchema = Joi.object({
   password: Joi.string().min(8).required(),
 });
 
-
+const emailSchema = {email: Joi.string().email().required()}
 
 export const validateContact = (req, res, next) => {
   const { error } = contactSchema.validate(req.body);
@@ -31,6 +31,13 @@ export const validateUser = (req, res, next) => {
   next();
 };
 
+export const validateEmail = (req, res, next) => {
+  const { error } = emailSchema.validate(req.body);
+  if (error) {
+    return res.status(400).json({ message: error.details[0].message });
+  }
+  next();
+};
 
 
 
