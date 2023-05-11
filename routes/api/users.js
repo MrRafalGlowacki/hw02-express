@@ -67,7 +67,7 @@ router.get("/verify/:verificationToken", async (req, res, next) => {
 
 // ponownie wysyłanie maila z weryfikacją
 
-router.post("/verify/", async (req, res, next) => {
+router.post("/verify/", validateEmail, async (req, res, next) => {
   const { email } = req.body;
   if (!email) {
     return res.status(400).json({ message: "missing required field: email" });
@@ -98,6 +98,9 @@ router.post("/login", validateUser, async (req, res, next) => {
   const user = await findUserByEmail(email);
   if (!user)
     return res.status(401).json({ message: "Invalid Email or password" });
+
+  if (user.verify !== true)
+    return res.status(401).json({ message: "User email adress not verified" });
 
   const isValidPassword = await passwordValidator(password, user.password);
 
