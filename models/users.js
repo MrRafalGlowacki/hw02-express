@@ -3,6 +3,7 @@ import fs from "fs/promises";
 import { userAvatar } from "../helpers/gravatar.js";
 import User from "./userSchema.js";
 import bcrypt from "bcrypt";
+import { v4 as uuidv4 } from "uuid";
 
 const hashPassword = async (pwd) => {
   const salt = await bcrypt.genSalt(10);
@@ -29,6 +30,26 @@ export const findUserByEmail = async (email) => {
   }
 };
 
+export const findUserByVeryficationTokenAndVerify = async (
+  verificationToken
+) => {
+  try {
+ 
+    const user = await User.findOne({ verificationToken });
+    if (user.verify === true) {
+      return "verified";
+    }
+    await User.findOneAndUpdate(verificationToken, {
+      verify: true,
+     
+    });
+
+    return user;
+  } catch (error) {
+    console.error(error);
+  }
+};
+
 export const createUser = async (email, password) => {
   try {
     const hashedPassword = await hashPassword(password);
@@ -37,6 +58,7 @@ export const createUser = async (email, password) => {
       email,
       password: hashedPassword,
       avatarURL: avatar,
+      verificationToken: uuidv4(),
     });
     const user = await newUser.save();
     return user;

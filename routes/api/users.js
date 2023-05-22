@@ -1,6 +1,6 @@
 import { Router } from "express";
 import User from "../../models/userSchema.js";
-import { validateUser } from "../../helpers/validation.js";
+import { validateEmail, validateUser } from "../../helpers/validation.js";
 import { config } from "../../helpers/config.js";
 import jwt from "jsonwebtoken";
 import { auth } from "../../helpers/authMiddlewares.js";
@@ -8,12 +8,15 @@ import {
   createUser,
   findUserByEmail,
   findUserById,
+  findUserByVeryficationTokenAndVerify,
   passwordValidator,
   updateUserAvatar,
 } from "../../models/users.js";
 import { upload } from "../../helpers/upload.js";
+import { sendVerificationEmail } from "../../helpers/sendgrid.js";
 
 const router = Router();
+
 // tworzenie nowego usera
 router.post("/signup", validateUser, async (req, res, next) => {
   const { email, password } = req.body;
@@ -30,6 +33,7 @@ router.post("/signup", validateUser, async (req, res, next) => {
   }
   try {
     const user = await createUser(email, password);
+    sendVerificationEmail(user);
     res.status(201).json({
       status: "success",
       code: 201,
@@ -42,6 +46,51 @@ router.post("/signup", validateUser, async (req, res, next) => {
     next(error);
   }
 });
+
+// weryfikacja adresu email nowego usera
+router.get("/verify/:verificationToken", async (req, res, next) => {
+  const verificationToken = req.params.verificationToken;
+  try {
+    const user = await findUserByVeryficationTokenAndVerify(verificationToken);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    } else if (user === "verified") {
+      res.status(400).json({ message: "User already verified" });
+    } else {
+      res.status(200).json({ message: "Verification successful" });
+    }
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Server error" });
+  }
+});
+
+// ponownie wysyłanie maila z weryfikacją
+
+router.post("/verify/", validateEmail, async (req, res, next) => {
+  const { email } = req.body;
+  if (!email) {
+    return res.status(400).json({ message: "missing required field: email" });
+  }
+  try {
+    const user = await findUserByEmail(email);
+    if (!user) {
+      return res
+        .status(401)
+        .json({ message: "Invalid Email, there is no such user" });
+    } else if (user.verify === true) {
+      return res
+        .status(400)
+        .json({ message: "Verification has already been passed" });
+    }
+    sendVerificationEmail(user);
+    return res.status(200).json({ message: "Verification email sent" });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: "Server error" });
+  }
+});
+
 // logowanie usera
 router.post("/login", validateUser, async (req, res, next) => {
   const { email, password } = req.body;
@@ -49,6 +98,9 @@ router.post("/login", validateUser, async (req, res, next) => {
   const user = await findUserByEmail(email);
   if (!user)
     return res.status(401).json({ message: "Invalid Email or password" });
+
+  if (user.verify !== true)
+    return res.status(401).json({ message: "User email adress not verified" });
 
   const isValidPassword = await passwordValidator(password, user.password);
 
@@ -119,7 +171,7 @@ router.patch(
   upload.single("avatar"),
   async (req, res, next) => {
     try {
-           const { _id } = req.user;
+      const { _id } = req.user;
       const { filename } = req.file;
       const avatarUpdate = await updateUserAvatar(_id, filename);
       res.status(200).json({
@@ -138,6 +190,7 @@ router.patch("/:id", async (req, res, next) => {
     if (!["starter", "pro", "business"].includes(subscription)) {
       return res.status(400).json({ message: "Invalid subscription type" });
     }
+
     const updatedUser = await User.findByIdAndUpdate(
       req.params.id,
       { subscription },
