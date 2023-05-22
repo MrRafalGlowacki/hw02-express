@@ -41,7 +41,7 @@ export const findUserByVeryficationTokenAndVerify = async (
     }
     await User.findOneAndUpdate(verificationToken, {
       verify: true,
-      // verificationToken: null,
+     
     });
 
     return user;
